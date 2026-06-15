@@ -1,26 +1,35 @@
 import pyautogui
 import time
 
-# Pequeño delay para que pyautogui sea estable
-pyautogui.PAUSE = 0.05
+pyautogui.PAUSE = 0.01
 
-def forward():
-    pyautogui.press('d')
 
-def left():
-    pyautogui.press('w')
+def hold_key(key, duration):
+    pyautogui.keyDown(key)
+    time.sleep(duration)
+    pyautogui.keyUp(key)
 
-def right():
-    pyautogui.press('s')
 
-def back():
-    pyautogui.press('a')
+def forward(duration=1.5):
+    hold_key('d', duration)
+
+
+def left(duration=0.8):
+    hold_key('w', duration)
+
+
+def right(duration=0.8):
+    hold_key('s', duration)
+
+
+def back(duration=1.2):
+    hold_key('a', duration)
+
 
 def stop():
     pass
 
 
-# Mapa de acciones (IMPORTANTE para RL)
 ACTIONS = [
     forward,
     left,

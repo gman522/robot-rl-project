@@ -17,7 +17,6 @@ CAM_Y = 500
 running = False
 cap = cv2.VideoCapture(0)
 
-# evita múltiples triggers de tecla
 last_toggle_time = 0
 
 
@@ -38,7 +37,6 @@ def get_state():
 
     left, center, right = detect_walls(frame)
 
-    # víctima aún no implementada
     return (int(left), int(center), int(right), 0)
 
 
@@ -56,7 +54,7 @@ while True:
         break
 
     # ----------------------------
-    # START / STOP (ANTI-SPAM REAL)
+    # START / STOP (ANTI-SPAM)
     # ----------------------------
     if keyboard.is_pressed("f8"):
         current_time = time.time()
@@ -69,7 +67,7 @@ while True:
 
             if running:
                 focus_app()
-                reset_epsilon()  # 🔥 importante: reinicia exploración
+                reset_epsilon()
                 state = get_state()
 
         time.sleep(0.1)
@@ -83,14 +81,13 @@ while True:
 
         log(f"STATE={state} ACTION={action} -> {ACTIONS[action].__name__}")
 
-        # ejecutar acción en robot
+        # ejecutar acción (YA incluye duración en robot_controller)
         ACTIONS[action]()
 
-        time.sleep(0.3)
-
+        time.sleep(1.0)
         next_state = get_state()
 
-        reward = -1  # base (luego lo mejoramos con visión)
+        reward = -1  # base
 
         update_q(state, action, reward, next_state)
 
