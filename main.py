@@ -54,7 +54,7 @@ while True:
         break
 
     # ----------------------------
-    # START / STOP (ANTI-SPAM)
+    # START / STOP
     # ----------------------------
     if keyboard.is_pressed("f8"):
         current_time = time.time()
@@ -79,15 +79,34 @@ while True:
 
         action = choose_action(state)
 
-        log(f"STATE={state} ACTION={action} -> {ACTIONS[action].__name__}")
+        log(f"STATE={state} ACTION={action}")
 
-        # ejecutar acción (YA incluye duración en robot_controller)
+        # ejecutar acción (con duración interna del robot_controller)
         ACTIONS[action]()
 
+        # esperar a que el movimiento termine + estabilización cámara
         time.sleep(1.0)
+
         next_state = get_state()
 
-        reward = -1  # base
+        # ----------------------------
+        # REWARD INTELIGENTE (CLAVE)
+        # ----------------------------
+        left, center, right, _ = state
+
+        reward = -1  # base exploración
+
+        # ❌ castigo fuerte: intentar avanzar con pared delante
+        if center == 1 and action == 0:
+            reward = -100
+
+        # ❌ castigo medio: chocar lateralmente o mala dirección
+        if (left == 1 and action == 1) or (right == 1 and action == 2):
+            reward = -10
+
+        # ✔ recompensa leve: avanzar en zona libre
+        if center == 0 and action == 0:
+            reward = 2
 
         update_q(state, action, reward, next_state)
 

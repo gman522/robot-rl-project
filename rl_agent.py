@@ -1,15 +1,36 @@
-import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
 import random
+import numpy as np
 
 # -------------------------
-# Q TABLE
+# RED NEURONAL
 # -------------------------
-Q = {}
+class DQN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(4, 32),
+            nn.ReLU(),
+            nn.Linear(32, 32),
+            nn.ReLU(),
+            nn.Linear(32, 5)
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
 
 # -------------------------
-# HIPERPARÁMETROS
+# MODELO
 # -------------------------
-alpha = 0.1
+model = DQN()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# -------------------------
+# HYPERPARAMS
+# -------------------------
 gamma = 0.9
 
 epsilon = 1.0
@@ -18,76 +39,61 @@ epsilon_decay = 0.995
 
 
 # -------------------------
-# NORMALIZAR ESTADO
+# UTIL
 # -------------------------
-def normalize_state(state):
-    return tuple(int(x) for x in state)
-
-
-# -------------------------
-# INICIALIZAR / OBTENER Q
-# -------------------------
-def get_q(state):
-
-    state = normalize_state(state)
-
-    if state not in Q:
-        Q[state] = np.zeros(5)  # 5 acciones
-
-    return Q[state]
+def to_tensor(state):
+    return torch.FloatTensor(state)
 
 
 # -------------------------
-# ELEGIR ACCIÓN (ε-greedy)
+# SELECCIÓN DE ACCIÓN
 # -------------------------
 def choose_action(state):
 
     global epsilon
 
-    state = normalize_state(state)
-
-    # exploración
     if random.random() < epsilon:
         return random.randint(0, 4)
 
-    # explotación
-    q_values = get_q(state)
-    return int(np.argmax(q_values))
+    state = to_tensor(state)
+    q_values = model(state)
+
+    return torch.argmax(q_values).item()
 
 
 # -------------------------
-# ACTUALIZAR Q-LEARNING
+# ENTRENAMIENTO
 # -------------------------
 def update_q(state, action, reward, next_state):
 
-    state = normalize_state(state)
-    next_state = normalize_state(next_state)
+    state = to_tensor(state)
+    next_state = to_tensor(next_state)
 
-    q_state = get_q(state)
-    q_next = get_q(next_state)
+    q_values = model(state)
+    next_q_values = model(next_state)
 
-    best_next = np.max(q_next)
+    target = q_values.clone().detach()
 
-    q_state[action] += alpha * (
-        reward + gamma * best_next - q_state[action]
-    )
+    target[action] = reward + gamma * torch.max(next_q_values)
+
+    loss = nn.MSELoss()(q_values, target)
+
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
 
 
 # -------------------------
 # DECAY EPSILON
 # -------------------------
 def decay():
-
     global epsilon
-
     epsilon = max(epsilon_min, epsilon * epsilon_decay)
 
 
 # -------------------------
-# RESET EPSILON (por episodio)
+# RESET EPSILON
 # -------------------------
 def reset_epsilon():
-
     global epsilon
-
     epsilon = 1.0
